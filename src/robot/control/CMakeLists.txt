@@ -15,6 +15,8 @@ find_package(ament_cmake REQUIRED) # ROS2 build tool
 find_package(rclcpp REQUIRED)      # ROS2 C++ package
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(g2o REQUIRED)
+find_package(Eigen3 REQUIRED)  # Find the Eigen package
 
 # Compiles source files into a library
 # A library is not executed, instead other executables can link
@@ -26,7 +28,8 @@ add_library(control_lib
 # Indicate to compiler where to search for header files
 target_include_directories(control_lib
   PUBLIC
-  include)
+  include
+  ${EIGEN3_INCLUDE_DIR})  # Include the Eigen headers
 
 # Add ROS2 dependencies required by package
 ament_target_dependencies(control_lib
@@ -38,7 +41,13 @@ ament_target_dependencies(control_lib
 # Create ROS2 node executable from source files
 add_executable(control_node src/control_node.cpp)
 # Link to the previously built library to access Transformer classes and methods
-target_link_libraries(control_node control_lib)
+target_link_libraries(control_node 
+    control_lib 
+    g2o::core 
+    g2o::stuff
+    Eigen3::Eigen
+    g2o::solver_csparse  # or solver_cholmod, solver_eigen
+)
 
 # Copy executable to installation location
 install(TARGETS
