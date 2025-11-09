@@ -1,6 +1,6 @@
 # Robot Car Navigation
 
-Part of the WATOnomous Autonomous Software Division Admissions Assignment.
+Part of the Watonomous Autonomous Software Division Admissions Assignment.
 
 The goal is to allow a robot car in a room full of blocks to navigate from A to B while avoiding obstacles.
 
@@ -12,9 +12,15 @@ There are four components, each is a ROS2 Node:
 3. Global Path Planning from source to destination points using the A* algorithm.
 4. Local Planning to take the A* algorithm's path and actuate the robot's velocity controls to follow it. Original implementation is Pure Pursuit, adjusting to Timed-Elastic-Band (TEB) based Model-Predictive Control
 
+## Getting Started
+
+To run, it takes only two very simple steps from the home directory of the repository:
+1. Run `./watod build` and then `./watod up`
+2. Open a Foxglove server to the port indicated in the terminal.
+
 ### Notes on Timed Elastic Band (TEB) Algorithm for Velocity Control
 
-Work done as part of studies while a research assistant at [CL2](https://github.com/CL2-UWaterloo).
+Additional extension work was done while a research assistant at [CL2](https://github.com/CL2-UWaterloo).
 
 Earliest concept is from Quinlan & Khatib at Stanford in 1994, with Sean Quinlan's PhD dissertation [here](http://i.stanford.edu/pub/cstr/reports/cs/tr/95/1537/CS-TR-95-1537.pdf). 
 
