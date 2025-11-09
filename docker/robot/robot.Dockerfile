@@ -24,6 +24,20 @@ RUN apt-get -qq update && rosdep update && \
 FROM ${BASE_IMAGE} AS dependencies
 
 # ADD MORE DEPENDENCIES HERE
+RUN apt update && apt-get -qq -y install libeigen3-dev libspdlog-dev libsuitesparse-dev qtdeclarative5-dev qt5-qmake libqglviewer-dev-qt5
+
+WORKDIR /opt
+RUN git clone https://github.com/RainerKuemmerle/g2o.git
+WORKDIR /opt/g2o
+RUN mkdir build && cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_INSTALL_PREFIX=/usr/local \
+             -DG2O_BUILD_EXAMPLES=OFF \
+             -DG2O_BUILD_APPLICATIONS=OFF && \
+    make -j$(nproc) && \
+    make install
+    
+RUN ldconfig
 
 # Install Rosdep requirements
 COPY --from=source /tmp/colcon_install_list /tmp/colcon_install_list

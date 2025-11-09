@@ -5,7 +5,7 @@ PlannerNode::PlannerNode() : Node("planner"), planner_(robot::PlannerCore(this->
   goal_sub_ = create_subscription<geometry_msgs::msg::PointStamped>("/goal_point", 10, std::bind(&PlannerNode::goalCallback, this, std::placeholders::_1));
   odom_sub_ = create_subscription<nav_msgs::msg::Odometry>("/odom/filtered", 10, std::bind(&PlannerNode::odomCallback, this, std::placeholders::_1));
   path_pub_ = create_publisher<nav_msgs::msg::Path>("/path", 10);
-  timer_ = create_wall_timer(std::chrono::milliseconds(500), std::bind(&PlannerNode::timerCallback, this));
+  timer_ = create_wall_timer(std::chrono::milliseconds(100), std::bind(&PlannerNode::timerCallback, this));
 }
 
 void PlannerNode::mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {

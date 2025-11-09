@@ -1,41 +1,85 @@
-#ifndef CONTROL_CORE_HPP_
-#define CONTROL_CORE_HPP_
+#pragma once
 
+#include "teb_g2o_types.hpp"
+#include <g2o/core/sparse_optimizer.h>
+#include <g2o/core/optimization_algorithm_levenberg.h>
+#include <memory>
+#include <vector>
 #include "rclcpp/rclcpp.hpp"
-#include "nav_msgs/msg/path.hpp"
-#include "nav_msgs/msg/odometry.hpp"
-#include "geometry_msgs/msg/twist.hpp"
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
 
-namespace robot
-{
+namespace robot {
 
-class ControlCore {
-  public:
-    // Constructor, we pass in the node's RCLCPP logger to enable logging to terminal
-    ControlCore(const rclcpp::Logger& logger);
-
-    void processPath(const nav_msgs::msg::Path::SharedPtr msg);
-    void processOdometry(const nav_msgs::msg::Odometry::SharedPtr msg);
-
-    geometry_msgs::msg::Twist generateCommand();
-  
-  private:
-    rclcpp::Logger logger_;
-
-    nav_msgs::msg::Path::SharedPtr current_path_;
-    nav_msgs::msg::Odometry::SharedPtr current_odometry_;
-
-    // Control parameters (example values)
-    double lookahead_distance_;
-    double linear_speed_;
-
-    // Helper functions for calculation
-    std::optional<geometry_msgs::msg::PoseStamped> findLookaheadPoint(double robot_x, double robot_y);
-    double calculateSteeringAngle(double robot_x, double robot_y, const geometry_msgs::msg::PoseStamped& lookahead_point);
-    double computeDistance(double x1, double y1, double x2, double y2);
-    double extractYaw(const geometry_msgs::msg::Quaternion &quat);
+struct TrajPose {
+  double x, y, theta;
+  double t; // absolute time from start or incremental
 };
 
-} 
+struct TebConfig {
+  struct Optim { bool optimization_activate = true; double weight_adapt_factor = 1.5; } optim;  // Increased for more aggressive optimization
+  struct Obs { bool include_dynamic_obstacles = false; } obstacles;
+  struct Traj { bool teb_autosize = false; double dt_ref = 0.1; double dt_hysteresis = 0.03;  // Faster control frequency
+                int min_samples = 3; int max_samples = 50; } trajectory;
+  struct Robot { double max_vel_x = 1.0; double max_vel_y = 0.5; double max_vel_theta = 1.5; double acc_lim_x = 2.0; } robot;  // Significantly increased for faster motion
+};
 
-#endif 
+class TebOptimalPlanner {
+public:
+  TebOptimalPlanner(const rclcpp::Logger& logger);
+  ~TebOptimalPlanner();
+
+  // register g2o creator types
+  static void registerG2OTypes();
+
+  // main optimize call
+  bool optimizeTEB(int iterations_innerloop, int iterations_outerloop, bool compute_cost_afterwards,
+                   double obst_cost_scale, double viapoint_cost_scale, bool alternative_time_cost);
+
+  // external setters (path, odom)
+  void setGlobalPath(const nav_msgs::msg::Path::SharedPtr &path);
+  void setOdometry(const nav_msgs::msg::Odometry::SharedPtr &odom);
+  void setOccupancyGrid(const nav_msgs::msg::OccupancyGrid::SharedPtr &map);
+  geometry_msgs::msg::Twist computeVelocityCommand();
+
+  // access optimized TEB
+  const std::vector<TrajPose>& getOptimizedBand() const { return teb_; }
+
+private:
+  rclcpp::Logger logger_;
+  // helper steps
+  bool buildGraph(double weight_multiplier);
+  bool optimizeGraph(int iterations, bool verbose);
+  void clearGraph();
+  void computeCurrentCost(double obst_cost_scale, double viapoint_cost_scale, bool alternative_time_cost);
+
+  // auto-resize trajectory (simple heuristic)
+  void autoResize(double dt_ref, double dt_hyst, int min_samples, int max_samples, bool fast_mode);
+
+  // helpers
+  double extractYaw(const geometry_msgs::msg::Quaternion& q);
+  std::pair<double,double> nearestPointOnPath(double x, double y);
+  // SDF / distance map helper
+  void computeDistanceMapFromGrid();
+  double getDistanceToObstacle(double x, double y) const;
+
+  // members
+  TebConfig cfg_;
+  std::vector<TrajPose> teb_;
+  nav_msgs::msg::Path::SharedPtr current_path_;
+  nav_msgs::msg::Odometry::SharedPtr current_odom_;
+  nav_msgs::msg::OccupancyGrid::SharedPtr current_map_;
+  std::vector<std::vector<double>> distance_map_;
+
+  // g2o
+  std::unique_ptr<g2o::SparseOptimizer> optimizer_;
+
+  // keep mapping of created vertices for reading back after optimization
+  std::vector<teb_g2o::VertexPose*> pose_vertices_;
+  std::vector<teb_g2o::VertexTimeDiff*> time_vertices_;
+
+  bool optimized_;
+};
+
+} // namespace robot
