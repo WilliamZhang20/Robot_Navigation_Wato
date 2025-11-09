@@ -18,11 +18,11 @@ struct TrajPose {
 };
 
 struct TebConfig {
-  struct Optim { bool optimization_activate = true; double weight_adapt_factor = 1.4; } optim;
+  struct Optim { bool optimization_activate = true; double weight_adapt_factor = 1.5; } optim;  // Increased for more aggressive optimization
   struct Obs { bool include_dynamic_obstacles = false; } obstacles;
-  struct Traj { bool teb_autosize = false; double dt_ref = 0.2; double dt_hysteresis = 0.05;
+  struct Traj { bool teb_autosize = false; double dt_ref = 0.1; double dt_hysteresis = 0.03;  // Faster control frequency
                 int min_samples = 3; int max_samples = 50; } trajectory;
-  struct Robot { double max_vel_x = 0.4; double max_vel_y = 0.2; double max_vel_theta = 1.0; double acc_lim_x = 1.0; } robot;
+  struct Robot { double max_vel_x = 1.0; double max_vel_y = 0.5; double max_vel_theta = 1.5; double acc_lim_x = 2.0; } robot;  // Significantly increased for faster motion
 };
 
 class TebOptimalPlanner {
@@ -62,6 +62,7 @@ private:
   std::pair<double,double> nearestPointOnPath(double x, double y);
   // SDF / distance map helper
   void computeDistanceMapFromGrid();
+  double getDistanceToObstacle(double x, double y) const;
 
   // members
   TebConfig cfg_;

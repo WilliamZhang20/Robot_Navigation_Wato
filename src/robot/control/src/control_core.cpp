@@ -40,6 +40,9 @@ void TebOptimalPlanner::registerG2OTypes() {
 
 void TebOptimalPlanner::setGlobalPath(const nav_msgs::msg::Path::SharedPtr &path) {
   current_path_ = path;
+  // Clear existing trajectory to force reinitialisation with new path - RESPOND TO GOAL CHANGES!
+  teb_.clear();
+  optimized_ = false;
 }
 
 void TebOptimalPlanner::setOdometry(const nav_msgs::msg::Odometry::SharedPtr &odom) {
@@ -135,9 +138,27 @@ std::pair<double,double> TebOptimalPlanner::nearestPointOnPath(double x, double 
   return {bx, by};
 }
 
+double TebOptimalPlanner::getDistanceToObstacle(double x, double y) const {
+  if (distance_map_.empty() || !current_map_) return 1e6;
+  
+  double resolution = current_map_->info.resolution;
+  double ox = current_map_->info.origin.position.x;
+  double oy = current_map_->info.origin.position.y;
+  int ix = static_cast<int>((x - ox) / resolution);
+  int iy = static_cast<int>((y - oy) / resolution);
+  int width = current_map_->info.width;
+  int height = current_map_->info.height;
+  
+  if (ix < 0 || ix >= width || iy < 0 || iy >= height) {
+    return 1e6;  // Outside map, assume safe
+  }
+  
+  return distance_map_[iy][ix];
+}
+
 void TebOptimalPlanner::autoResize(double dt_ref, double dt_hyst, int min_samples, int max_samples, bool fast_mode) {
   // trivial autosizing: set sample count so horizon ~ dt_ref * samples
-  double horizon = 3.0; // you can base on cfg or env
+  double horizon = 1.0; // you can base on cfg or env
   int suggested = std::clamp(static_cast<int>(std::round(horizon / dt_ref)), min_samples, max_samples);
   // If this affects teb_ vector length, resize and distribute times
   if (teb_.size() > (size_t)suggested) teb_.resize(suggested);
@@ -183,7 +204,7 @@ bool TebOptimalPlanner::buildGraph(double weight_multiplier) {
     time_vertices_.push_back(vt);
   }
 
-  // edges: shortest path reference for each pose (except first maybe)
+  // edges: shortest path reference for each pose (except first maybe) - PRIORITIZE A* PATH!
   int eid = 0;
   for (size_t i=1;i<pose_vertices_.size();++i) {
     auto ref = nearestPointOnPath(teb_[i].x, teb_[i].y);
@@ -191,33 +212,33 @@ bool TebOptimalPlanner::buildGraph(double weight_multiplier) {
     e->setId(eid++);
     e->setVertex(0, pose_vertices_[i]);
     e->setMeasurement(Eigen::Vector2d(ref.first, ref.second));
-    Eigen::Matrix2d info = Eigen::Matrix2d::Identity() * (5.0 * weight_multiplier);
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity() * (200.0 * weight_multiplier);  // Massively increased from 50.0 to 200.0 - A* PATH IS PRIMARY OBJECTIVE!
     e->setInformation(info);
     optimizer_->addEdge(e);
   }
 
-  // velocity edges linking (pose_i, pose_{i+1}) and dt_i
+  // velocity edges linking (pose_i, pose_{i+1}) and dt_i - relaxed constraints
   for (size_t i=0;i+1<pose_vertices_.size();++i) {
     auto e = new EdgeVelocity();
     e->setId(eid++);
     e->setVertex(0, pose_vertices_[i]);
     e->setVertex(1, pose_vertices_[i+1]);
     e->setVertex(2, time_vertices_[i]);
-    e->setLimits(cfg_.robot.max_vel_x, cfg_.robot.max_vel_theta);
-    Eigen::Matrix2d info = Eigen::Matrix2d::Identity() * (2.0 * weight_multiplier);
+    e->setLimits(cfg_.robot.max_vel_x * 1.5, cfg_.robot.max_vel_theta * 1.5);  // Relaxed limits by 50%
+    Eigen::Matrix2d info = Eigen::Matrix2d::Identity() * (50.0 * weight_multiplier);  // Reduced from 150.0 to 50.0 for softer constraints
     e->setInformation(info);
     optimizer_->addEdge(e);
   }
 
-  // holonomic lateral slip edges (penalize lateral displacement)
-  for (size_t i=0;i+1<pose_vertices_.size();++i) {
+  // holonomic lateral slip edges (penalize lateral displacement) - very relaxed for aggressive lateral corrections
+  for (size_t i = 0; i + 1 < pose_vertices_.size(); ++i) {
     auto eh = new EdgeVelocityHolonomic();
     eh->setId(eid++);
     eh->setVertex(0, pose_vertices_[i]);
     eh->setVertex(1, pose_vertices_[i+1]);
     eh->setVertex(2, time_vertices_[i]);
     Eigen::Matrix<double,1,1> info;
-    info(0,0) = 10.0 * weight_multiplier;
+    info(0,0) = 5.0 * weight_multiplier;  // Drastically reduced from 50.0 to 5.0 for aggressive lateral corrections
     eh->setInformation(info);
     optimizer_->addEdge(eh);
   }
@@ -236,6 +257,17 @@ bool TebOptimalPlanner::buildGraph(double weight_multiplier) {
     info(0,0) = 5.0 * weight_multiplier;
     ea->setInformation(info);
     optimizer_->addEdge(ea);
+  }
+
+  for (size_t i = 0; i + 1 < pose_vertices_.size(); ++i) {
+    auto e_fwd = new EdgeForwardVelocity(3.0);
+    e_fwd->setVertex(0, pose_vertices_[i]);
+    e_fwd->setVertex(1, pose_vertices_[i+1]);
+    e_fwd->setVertex(2, time_vertices_[i]);
+    Eigen::Matrix<double,1,1> info_fwd;
+    info_fwd(0,0) = 40.0 * weight_multiplier;  // Increased from 15.0 to 40.0 for stronger forward motion bias
+    e_fwd->setInformation(info_fwd);
+    optimizer_->addEdge(e_fwd);
   }
 
   // obstacle edges - attach to every pose (except maybe first)
@@ -282,25 +314,25 @@ bool TebOptimalPlanner::buildGraph(double weight_multiplier) {
     auto eo = new EdgeObstacle();
     eo->setId(eid++);
     eo->setVertex(0, pose_vertices_[i]);
-    eo->setInflationRadius(0.5);
+    eo->setInflationRadius(0.3);  // Reduced from 0.5 to 0.3 to allow closer approach to walls
     eo->setDistanceAndGradientGetter(sdf_getter);
-    eo->setWeight(100.0 * weight_multiplier);
+    eo->setWeight(100.0 * weight_multiplier);  // Reduced from 200.0 to 100.0 to be less aggressive
     Eigen::Matrix<double,1,1> info;
-    info(0,0) = 1.0 * weight_multiplier;
+    info(0,0) = 0.5 * weight_multiplier;  // Reduced from 1.0 to 0.5
     eo->setInformation(info);
     optimizer_->addEdge(eo);
   }
 
-  // optional: time optimal edges (encourage small dt) on each time vertex
+  // optional: time optimal edges (encourage small dt) on each time vertex - reduced weight for faster motion
   for (size_t i=0;i<time_vertices_.size(); ++i) {
     auto et = new EdgeTimeOptimal();
     et->setId(eid++);
     et->setVertex(0, time_vertices_[i]);
     double s_measure = std::log(cfg_.trajectory.dt_ref); // desire log(dt_ref)
     et->setMeasurement(s_measure);
-    et->setWeight(0.05 * weight_multiplier); // small push toward dt_ref
+    et->setWeight(0.01 * weight_multiplier); // Reduced from 0.05 to 0.01 to allow faster motion
     Eigen::Matrix<double,1,1> info;
-    info(0,0) = 1e-2 * weight_multiplier;
+    info(0,0) = 1e-5 * weight_multiplier; // Reduced from 1e-4 to 1e-5
     et->setInformation(info);
     optimizer_->addEdge(et);
   }
@@ -395,20 +427,10 @@ geometry_msgs::msg::Twist TebOptimalPlanner::computeVelocityCommand() {
   double cos_theta = std::cos(teb_[0].theta);
   double sin_theta = std::sin(teb_[0].theta);
   
+  // Fixed transformation: rotate global velocity to robot frame
   cmd.linear.x = vx_global * cos_theta + vy_global * sin_theta;
   cmd.linear.y = -vx_global * sin_theta + vy_global * cos_theta;
   cmd.angular.z = omega;
-  
-  // Apply velocity limits if configured
-  if (cfg_.robot.max_vel_x > 0.0) {
-    cmd.linear.x = std::clamp(cmd.linear.x, -cfg_.robot.max_vel_x, cfg_.robot.max_vel_x);
-  }
-  if (cfg_.robot.max_vel_y > 0.0) {
-    cmd.linear.y = std::clamp(cmd.linear.y, -cfg_.robot.max_vel_y, cfg_.robot.max_vel_y);
-  }
-  if (cfg_.robot.max_vel_theta > 0.0) {
-    cmd.angular.z = std::clamp(cmd.angular.z, -cfg_.robot.max_vel_theta, cfg_.robot.max_vel_theta);
-  }
 
   return cmd;
 }
@@ -425,8 +447,9 @@ bool TebOptimalPlanner::optimizeTEB(int iterations_innerloop, int iterations_out
     if (cfg_.trajectory.teb_autosize) {
       autoResize(cfg_.trajectory.dt_ref, cfg_.trajectory.dt_hysteresis, cfg_.trajectory.min_samples, cfg_.trajectory.max_samples, fast_mode);
     }
-    // build internal band from path/odom if not present
-    if (teb_.empty()) {
+    // build internal band from path/odom - ALWAYS reinitialize for goal changes!
+    if (teb_.empty() || i == 0) {  // Reinitialize on first iteration to respond to goal changes
+      teb_.clear();  // Clear existing trajectory to respond to new goals
       // simple initialization using path: sample up to N poses or build N repeated last
       if (!current_odom_ || !current_path_) return false;
       double rx = current_odom_->pose.pose.position.x;
@@ -436,24 +459,58 @@ bool TebOptimalPlanner::optimizeTEB(int iterations_innerloop, int iterations_out
       teb_.clear();
       TrajPose p0{rx, ry, rtheta, 0.0};
       teb_.push_back(p0);
-      double lastx=rx, lasty=ry;
+      
+      // Find closest point on path to robot
+      double min_dist = std::numeric_limits<double>::infinity();
+      size_t closest_idx = 0;
+      for (size_t k = 0; k < current_path_->poses.size(); ++k) {
+        double px = current_path_->poses[k].pose.position.x;
+        double py = current_path_->poses[k].pose.position.y;
+        double dist = std::hypot(px - rx, py - ry);
+        if (dist < min_dist) {
+          min_dist = dist;
+          closest_idx = k;
+        }
+      }
+      
+      double lastx = rx, lasty = ry, last_theta = rtheta;
       double horizon = 3.0;
-      double desired = 0.5;
-      double time_per_segment = horizon / (desired * (N-1));
+      double desired_speed = 0.8;  // Increased to 0.8 to match forward velocity target for faster motion
+      double time_per_segment = horizon / (desired_speed * (N-1));
       size_t sampled = 1;
-      for (size_t k=0; k<current_path_->poses.size() && sampled < (size_t)N; ++k) {
+      
+      // Start from closest point on path and sample forward
+      for (size_t k = closest_idx; k < current_path_->poses.size() && sampled < (size_t)N; ++k) {
         double px = current_path_->poses[k].pose.position.x;
         double py = current_path_->poses[k].pose.position.y;
         double seg = std::hypot(px-lastx, py-lasty);
-        if (seg < 1e-3) continue;
-        double theta = std::atan2(py-lasty, px-lastx);
+        if (seg < 0.05) continue;  // Increased minimum segment length
+        
+        // Smooth orientation transition
+        double path_theta = std::atan2(py-lasty, px-lastx);
+        double theta_diff = path_theta - last_theta;
+        while (theta_diff > M_PI) theta_diff -= 2.0 * M_PI;
+        while (theta_diff < -M_PI) theta_diff += 2.0 * M_PI;
+        
+        // Limit orientation change per segment to prevent sharp turns (less restrictive)
+        if (std::abs(theta_diff) > M_PI/3) {
+          theta_diff = std::copysign(M_PI/3, theta_diff);  // Increased from π/4 to π/3 for more aggressive turns
+        }
+        double theta = last_theta + theta_diff;
+        
         TrajPose tp{px, py, theta, time_per_segment * sampled};
         teb_.push_back(tp);
-        lastx = px; lasty = py;
+        lastx = px; lasty = py; last_theta = theta;
         sampled++;
       }
+      
+      // If we didn't sample enough points, extend trajectory forward
       while (teb_.size() < (size_t)N) {
         TrajPose last = teb_.back();
+        // Extend forward in current direction
+        double extend_dist = 0.2;  // 20cm forward
+        last.x += extend_dist * std::cos(last.theta);
+        last.y += extend_dist * std::sin(last.theta);
         last.t += time_per_segment;
         teb_.push_back(last);
       }

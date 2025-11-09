@@ -111,9 +111,8 @@ public:
     double v = dist / dt;
     double omega = dtheta / dt;
     // soft residual toward desired velocities (or toward zero for limits)
-    _error[0] = std::max(0.0, v - max_v_);
-    _error[1] = std::max(0.0, std::abs(omega) - max_omega_);
-    // if you prefer hinge/limit behavior, use max(0, v-max_v_) etc. in computeError
+    _error[0] = (v > max_v_) ? (v - max_v_) : 0.0;
+    _error[1] = (std::abs(omega) > max_omega_) ? (std::abs(omega) - max_omega_) : 0.0;
   }
   void setLimits(double vmax, double wmax) { max_v_ = vmax; max_omega_ = wmax; }
   bool read(std::istream&) override { return false; }
@@ -153,8 +152,6 @@ public:
 };
 
 // Edge: acceleration (connects two consecutive time-vertices and three poses implicitly)
-// For simplicity we implement a binary-like edge using two time vertices via measurement trick.
-// Here we create a unary edge on time vertex that uses neighboring dist info provided externally.
 class EdgeAcceleration : public g2o::BaseMultiEdge<1, double> {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -187,6 +184,41 @@ private:
   double a_max_;
   bool read(std::istream&) override { return false; }
   bool write(std::ostream&) const override { return false; }
+};
+
+class EdgeForwardVelocity : public g2o::BaseMultiEdge<1, double> {
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EdgeForwardVelocity(double desired_vel = 0.3) : desired_vel_(desired_vel) {
+    resize(3);
+    _measurement = 0.0;  // not used, but needed
+  }
+
+  void computeError() override {
+    const VertexPose* p1 = static_cast<const VertexPose*>(_vertices[0]);
+    const VertexPose* p2 = static_cast<const VertexPose*>(_vertices[1]);
+    const VertexTimeDiff* dt_v = static_cast<const VertexTimeDiff*>(_vertices[2]);
+
+    double dx = p2->estimate()[0] - p1->estimate()[0];
+    double dy = p2->estimate()[1] - p1->estimate()[1];
+    double theta = p1->estimate()[2];
+    double dt = std::max(dt_v->dt(), 1e-6);
+
+    // Forward displacement in robot frame
+    double forward_disp = dx * std::cos(theta) + dy * std::sin(theta);
+    double v_forward = forward_disp / dt;
+
+    _error[0] = v_forward - desired_vel_;  // pull toward 0.3 m/s
+  }
+
+  void setDesiredVelocity(double v) { desired_vel_ = v; }
+  double getDesiredVelocity() const { return desired_vel_; }
+
+  virtual bool read(std::istream&) override { return false; }
+  virtual bool write(std::ostream&) const override { return false; }
+
+private:
+  double desired_vel_;
 };
 
 // Edge: obstacle (pull pose away from obstacles using SDF)
@@ -241,6 +273,7 @@ inline void registerG2OTypes() {
   factory->registerType("VERTEX_TIMEDIFF", std::make_shared<Creator<VertexTimeDiff>>());
   factory->registerType("EDGE_TIME_OPTIMAL", std::make_shared<Creator<EdgeTimeOptimal>>());
   factory->registerType("EDGE_SHORTEST_PATH", std::make_shared<Creator<EdgeShortestPath>>());
+  factory->registerType("EDGE_FORWARD_VELOCITY", std::make_shared<Creator<EdgeForwardVelocity>>());
   factory->registerType("EDGE_VELOCITY", std::make_shared<Creator<EdgeVelocity>>());
   factory->registerType("EDGE_VELOCITY_HOLONOMIC", std::make_shared<Creator<EdgeVelocityHolonomic>>());
   factory->registerType("EDGE_ACCELERATION", std::make_shared<Creator<EdgeAcceleration>>());

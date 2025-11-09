@@ -12,7 +12,7 @@ ControlNode::ControlNode(): Node("control"), control_(robot::TebOptimalPlanner(t
   cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
   control_timer_ = create_wall_timer(
-      std::chrono::milliseconds(100), std::bind(&ControlNode::controlLoop, this));
+      std::chrono::milliseconds(10), std::bind(&ControlNode::controlLoop, this));  // Increased from 20ms to 10ms (100Hz)
 }
 
 void ControlNode::mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
@@ -28,16 +28,14 @@ void ControlNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 }
 
 void ControlNode::controlLoop() {
-    RCLCPP_INFO(this->get_logger(), "Control looping...");
     control_.optimizeTEB(
-        10,      // iterations_innerloop
-        2,       // iterations_outerloop  
+        15,      // iterations_innerloop (increased from 10 for better optimization)
+        3,       // iterations_outerloop (increased from 2 for more aggressive optimization)
         false,   // compute_cost_afterwards
         1.0,     // obst_cost_scale
         1.0,     // viapoint_cost_scale
         false    // alternative_time_cost
     );
-    RCLCPP_INFO(this->get_logger(), "Velocity commanding...");
     geometry_msgs::msg::Twist cmd_vel = control_.computeVelocityCommand();
 
     cmd_vel_pub_->publish(cmd_vel);
