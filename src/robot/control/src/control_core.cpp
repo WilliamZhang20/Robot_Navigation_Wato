@@ -238,7 +238,7 @@ bool TebOptimalPlanner::buildGraph(double weight_multiplier) {
     eh->setVertex(1, pose_vertices_[i+1]);
     eh->setVertex(2, time_vertices_[i]);
     Eigen::Matrix<double,1,1> info;
-    info(0,0) = 5.0 * weight_multiplier;  // Drastically reduced from 50.0 to 5.0 for aggressive lateral corrections
+    info(0,0) = 1.0 * weight_multiplier;  // Drastically reduced from 50.0 to 5.0 for aggressive lateral corrections
     eh->setInformation(info);
     optimizer_->addEdge(eh);
   }
@@ -254,13 +254,13 @@ bool TebOptimalPlanner::buildGraph(double weight_multiplier) {
     ea->setVertex(4, time_vertices_[i+1]);
     ea->setAccelLimit(cfg_.robot.acc_lim_x);
     Eigen::Matrix<double,1,1> info;
-    info(0,0) = 5.0 * weight_multiplier;
+    info(0,0) = 4.0 * weight_multiplier;
     ea->setInformation(info);
     optimizer_->addEdge(ea);
   }
 
   for (size_t i = 0; i + 1 < pose_vertices_.size(); ++i) {
-    auto e_fwd = new EdgeForwardVelocity(3.0);
+    auto e_fwd = new EdgeForwardVelocity(5.0);
     e_fwd->setVertex(0, pose_vertices_[i]);
     e_fwd->setVertex(1, pose_vertices_[i+1]);
     e_fwd->setVertex(2, time_vertices_[i]);
