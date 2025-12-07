@@ -613,14 +613,14 @@
         </model>
 
            
-        <model name='robot' canonical_link='chassis'>
+        <model name='robot' canonical_link='base_link'>
             <pose relative_to='world'>-6 0 1 0 0 0</pose>   <!--the pose is relative to the world by default-->
 
-            <frame name="lidar_frame" attached_to='chassis'>
+            <frame name="lidar_frame" attached_to='base_link'>
                 <pose>0.8 0 0.5 0 0 0</pose>
             </frame>
 
-            <frame name="camera_frame" attached_to='chassis'>
+            <frame name="camera_frame" attached_to='base_link'>
                 <pose>0.8 0 0.5 0 0 0</pose>
             </frame>
         
@@ -630,7 +630,7 @@
 
        
 
-            <link name='chassis'>
+            <link name='base_link'>
                 <pose relative_to='__model__'>0.5 0 0.4 0 0 0</pose>
                 <inertial> <!--inertial properties of the link mass, inertia matix-->
                     <mass>1.14395</mass>
@@ -720,7 +720,7 @@
             
             <!--let's build the left wheel-->
             <link name='left_wheel'>
-                <pose relative_to="chassis">-0.5 0.6 0 -1.5707 0 0</pose> <!--angles are in radian-->
+                <pose relative_to="base_link">-0.5 0.6 0 -1.5707 0 0</pose> <!--angles are in radian-->
                 <inertial>
                     <mass>2</mass>
                     <inertia>
@@ -757,7 +757,7 @@
 
             <!--copy and paste for right wheel but change position-->
             <link name='right_wheel'>
-                <pose relative_to="chassis">-0.5 -0.6 0 -1.5707 0 0</pose> <!--angles are in radian-->
+                <pose relative_to="base_link">-0.5 -0.6 0 -1.5707 0 0</pose> <!--angles are in radian-->
                 <inertial>
                     <mass>1</mass>
                     <inertia>
@@ -791,46 +791,7 @@
                     </geometry>
                 </collision>
             </link>
-
-            <frame name="caster_frame" attached_to='chassis'>
-                <pose>0.8 0 -0.2 0 0 0</pose>
-            </frame>
-
-            <!--caster wheel-->
-            <link name='caster'>
-                <pose relative_to='caster_frame'/>
-                <inertial>
-                    <mass>1</mass>
-                    <inertia>
-                        <ixx>0.1</ixx>
-                        <ixy>0</ixy>
-                        <ixz>0</ixz>
-                        <iyy>0.1</iyy>
-                        <iyz>0</iyz>
-                        <izz>0.1</izz>
-                    </inertia>
-                </inertial>
-                <visual name='visual'>
-                    <geometry>
-                        <sphere>
-                            <radius>0.2</radius>
-                        </sphere>
-                    </geometry>
-                    <material>
-                        <ambient>0.0 1 0.0 1</ambient>
-                        <diffuse>0.0 1 0.0 1</diffuse>
-                        <specular>0.0 1 0.0 1</specular>
-                    </material>
-                </visual>
-                <collision name='collision'>
-                    <geometry>
-                        <sphere>
-                            <radius>0.2</radius>
-                        </sphere>
-                    </geometry>
-                </collision>
-            </link>
-
+            
             <!--connecting these links together using joints-->
             <joint name='left_wheel_joint' type='revolute'> <!--continous joint is not supported yet-->
                 <pose relative_to='left_wheel'/>

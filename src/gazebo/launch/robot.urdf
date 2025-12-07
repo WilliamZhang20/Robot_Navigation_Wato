@@ -1,53 +1,98 @@
-<robot name='robot'>
-    <link name='robot/chassis'>
-        <visual>
-            <geometry>
-                <box size="2.0 1.0 0.5"/>
-            </geometry>
-            <material>
-                <ambient>0.0 0.0 1.0 1</ambient>
-                <diffuse>0.0 0.0 1.0 1</diffuse>
-                <specular>0.0 0.0 1.0 1</specular>
-            </material>
-        </visual>
-    </link>
-    
-    <link name='robot/left_wheel'>
-        <visual name='visual'>
-            <geometry>
-                <cylinder radius="0.4" length="0.2"/>
-            </geometry>
-            <material>
-                <ambient>1.0 0.0 0.0 1</ambient>
-                <diffuse>1.0 0.0 0.0 1</diffuse>
-                <specular>1.0 0.0 0.0 1</specular>
-            </material>
-        </visual>
+<?xml version="1.0"?>
+<robot name="limo" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- Parameters -->
+  <xacro:property name="wheelbase" value="0.20"/>
+  <xacro:property name="track" value="0.13"/>
+  <xacro:property name="wheel_radius" value="0.045"/>
+  <xacro:property name="wheel_width" value="0.045"/>
+  <xacro:property name="wheel_z" value="-0.10"/>
+
+  <!-- Base Link -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <mesh filename="package://limo_description/meshes/limo_base_decimated.dae"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </visual>
+
+    <collision>
+      <geometry>
+        <box size="0.13 0.12 0.10"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0"
+               iyy="0.01" iyz="0"
+               izz="0.01"/>
+    </inertial>
+  </link>
+
+  <!-- Wheel Macro -->
+  <xacro:macro name="wheel" params="prefix x y z reflect">
+
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <geometry>
+          <mesh filename="package://limo_description/meshes/limo_wheel.dae"/>
+        </geometry>
+      </visual>
+
+      <collision>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="1.57 0 0"/>
+      </collision>
+
+      <inertial>
+        <mass value="0.2"/>
+        <inertia ixx="1e-3" ixy="0" ixz="0"
+                 iyy="1e-3" iyz="0"
+                 izz="1e-3"/>
+      </inertial>
     </link>
 
-    <link name='robot/right_wheel'>
-        <visual name='visual'>
-            <geometry>
-                <cylinder radius="0.4" length="0.2" />
-            </geometry>
-            <material>
-                <ambient>1.0 0.0 0.0 1</ambient>
-                <diffuse>1.0 0.0 0.0 1</diffuse>
-                <specular>1.0 0.0 0.0 1</specular>
-            </material>
-        </visual>
-    </link>
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
+      <axis xyz="0 ${reflect} 0"/>
+    </joint>
 
-    <link name='robot/caster'>
-        <visual name='visual'>
-            <geometry>
-                <sphere radius="0.2" />
-            </geometry>
-            <material>
-                <ambient>0.0 1 0.0 1</ambient>
-                <diffuse>0.0 1 0.0 1</diffuse>
-                <specular>0.0 1 0.0 1</specular>
-            </material>
-        </visual>
-    </link>
+  </xacro:macro>
+
+  <!-- Instantiate 4 wheels -->
+
+  <!-- Front Left -->
+  <xacro:wheel prefix="front_left"
+               x="${wheelbase/2}"
+               y="${track/2}"
+               z="${wheel_z}"
+               reflect="1"/>
+
+  <!-- Front Right -->
+  <xacro:wheel prefix="front_right"
+               x="${wheelbase/2}"
+               y="${-track/2}"
+               z="${wheel_z}"
+               reflect="-1"/>
+
+  <!-- Rear Left -->
+  <xacro:wheel prefix="rear_left"
+               x="${-wheelbase/2}"
+               y="${track/2}"
+               z="${wheel_z}"
+               reflect="1"/>
+
+  <!-- Rear Right -->
+  <xacro:wheel prefix="rear_right"
+               x="${-wheelbase/2}"
+               y="${-track/2}"
+               z="${wheel_z}"
+               reflect="-1"/>
+
 </robot>

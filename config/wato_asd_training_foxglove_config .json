@@ -34,10 +34,10 @@
       },
       "transforms": {
         "frame:robot/right_wheel": {
-          "visible": false
+          "visible": true
         },
         "frame:robot/left_wheel": {
-          "visible": false
+          "visible": true
         },
         "frame:robot/chassis/imu_sensor": {
           "visible": false
