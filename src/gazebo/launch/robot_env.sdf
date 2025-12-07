@@ -627,22 +627,28 @@
             <frame name="camera_optical_frame" attached_to='camera_frame'>
                 <pose>0 0 0 -1.57 0 -1.57</pose>
             </frame>
-
        
 
             <link name='base_link'>
                 <pose relative_to='__model__'>0.5 0 0.4 0 0 0</pose>
                 <inertial> <!--inertial properties of the link mass, inertia matix-->
-                    <mass>1.14395</mass>
+                    <mass>2.1557</mass>
                     <inertia>
-                        <ixx>0.126164</ixx>
+                        <ixx>0.24</ixx>
                         <ixy>0</ixy>
                         <ixz>0</ixz>
-                        <iyy>0.416519</iyy>
+                        <iyy>0.96</iyy>
                         <iyz>0</iyz>
-                        <izz>0.481014</izz>
+                        <izz>0.96</izz>
                     </inertia>
                 </inertial>
+                <collision name='collision'>
+                    <geometry>
+                        <box>
+                            <size>0.13 0.12 0.10</size>
+                        </box>
+                    </geometry>
+                </collision>
                 <visual name='visual'>
                     <geometry>
                         <box>
@@ -722,34 +728,29 @@
             <link name='left_wheel'>
                 <pose relative_to="base_link">-0.5 0.6 0 -1.5707 0 0</pose> <!--angles are in radian-->
                 <inertial>
-                    <mass>2</mass>
+                    <mass>0.5</mass>
                     <inertia>
-                        <ixx>0.145833</ixx>
+                        <ixx>0.01055</ixx>
                         <ixy>0</ixy>
                         <ixz>0</ixz>
-                        <iyy>0.145833</iyy>
+                        <iyy>0.00075</iyy>
                         <iyz>0</iyz>
-                        <izz>0.125</izz>
+                        <izz>0.01055</izz>
                     </inertia>
                 </inertial>
-                <visual name='visual'>
+                <visual name="visual">
                     <geometry>
-                        <cylinder>
-                            <radius>0.4</radius>
-                            <length>0.2</length>
-                        </cylinder>
+                        <mesh>
+                            <uri>file://$(find limo_simulation)/meshes/limo_wheel.dae</uri>
+                        </mesh>
                     </geometry>
-                    <material>
-                        <ambient>1.0 0.0 0.0 1</ambient>
-                        <diffuse>1.0 0.0 0.0 1</diffuse>
-                        <specular>1.0 0.0 0.0 1</specular>
-                    </material>
                 </visual>
                 <collision name='collision'>
+                    <origin xyz="0 0.0225 0" rpy="1.57 0 0" />
                     <geometry>
                         <cylinder>
-                            <radius>0.4</radius>
-                            <length>0.2</length>
+                            <radius>0.045</radius>
+                            <length>0.045</length>
                         </cylinder>
                     </geometry>
                 </collision>
@@ -759,14 +760,14 @@
             <link name='right_wheel'>
                 <pose relative_to="base_link">-0.5 -0.6 0 -1.5707 0 0</pose> <!--angles are in radian-->
                 <inertial>
-                    <mass>1</mass>
+                    <mass>0.5</mass>
                     <inertia>
-                        <ixx>0.145833</ixx>
+                        <ixx>0.01055</ixx>
                         <ixy>0</ixy>
                         <ixz>0</ixz>
-                        <iyy>0.145833</iyy>
+                        <iyy>0.00075</iyy>
                         <iyz>0</iyz>
-                        <izz>0.125</izz>
+                        <izz>0.01055</izz>
                     </inertia>
                 </inertial>
                 <visual name='visual'>
@@ -783,19 +784,20 @@
                     </material>
                 </visual>
                 <collision name='collision'>
+                    <origin xyz="0 0.0225 0" rpy="1.57 0 0" />
                     <geometry>
                         <cylinder>
-                            <radius>0.4</radius>
-                            <length>0.2</length>
+                            <radius>0.045</radius>
+                            <length>0.045</length>
                         </cylinder>
                     </geometry>
                 </collision>
             </link>
-            
+
             <!--connecting these links together using joints-->
             <joint name='left_wheel_joint' type='revolute'> <!--continous joint is not supported yet-->
                 <pose relative_to='left_wheel'/>
-                <parent>chassis</parent>
+                <parent>base_link</parent>
                 <child>left_wheel</child>
                 <axis>
                     <xyz expressed_in='__model__'>0 1 0</xyz> <!--can be descired to any frame or even arbitrary frames-->
@@ -806,9 +808,15 @@
                 </axis>
             </joint>
 
+            <gazebo reference="${wheel_prefix}_wheel_link">
+                <mu>0.2</mu>
+                <mu2>0.2</mu2>
+                <fdir1>0 ${reflect*1} 0</fdir1>
+            </gazebo>
+
             <joint name='right_wheel_joint' type='revolute'>
                 <pose relative_to='right_wheel'/>
-                <parent>chassis</parent>
+                <parent>base_link</parent>
                 <child>right_wheel</child>
                 <axis>
                     <xyz expressed_in='__model__'>0 1 0</xyz>
@@ -819,20 +827,17 @@
                 </axis>
             </joint>
 
-            <!--different type of joints ball joint--> <!--defult value is the child-->
-            <joint name='caster_wheel' type='ball'>
-                <parent>chassis</parent>
-                <child>caster</child>
-            </joint>
-
             <!--diff drive plugin-->
             <plugin
                 filename="ignition-gazebo-diff-drive-system"
                 name="ignition::gazebo::systems::DiffDrive">
-                <left_joint>left_wheel_joint</left_joint>
-                <right_joint>right_wheel_joint</right_joint>
-                <wheel_separation>1.2</wheel_separation>
-                <wheel_radius>0.4</wheel_radius>
+                <left_joint>front_left_wheel_joint</left_joint>
+                <left_joint>rear_left_wheel_joint</left_joint>
+
+                <right_joint>front_right_wheel_joint</right_joint>
+                <right_joint>rear_right_wheel_joint</right_joint>
+                <wheel_separation>0.172</wheel_separation>
+                <wheel_radius>0.045</wheel_radius>
                 <odom_publish_frequency>1</odom_publish_frequency>
                 <topic>cmd_vel</topic>
             </plugin>
