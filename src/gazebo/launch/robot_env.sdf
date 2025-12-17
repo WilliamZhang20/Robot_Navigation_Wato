@@ -650,25 +650,13 @@
                     </geometry>
                 </collision>
                 <visual name='visual'>
-                    <geometry>
-                        <box>
-                            <size>2.0 1.0 0.5</size> <!--question: this size is in meter-->
-                        </box>
-                    </geometry>
-                    <!--let's add color to our link-->
-                    <material>
-                        <ambient>0.0 0.0 1.0 1</ambient>
-                        <diffuse>0.0 0.0 1.0 1</diffuse>
-                        <specular>0.0 0.0 1.0 1</specular>
-                    </material>
+                    <visual>
+                        <geometry>
+                            <mesh filename="package://gazebo/meshes/limo_base_decimated.dae" scale="1 1 1"/>
+                        </geometry>
+                        <origin xyz="0 0 -0.15" rpy="0 0 1.57" />
+                    </visual>
                 </visual>
-                <collision name='collision'> <!--todo: describe why we need the collision-->
-                    <geometry>
-                        <box>
-                            <size>2.0 1.0 0.5</size>
-                        </box>
-                    </geometry>
-                </collision>
                 <sensor name="imu_sensor" type="imu">
                     <always_on>1</always_on>
                     <update_rate>1</update_rate>
