@@ -39,13 +39,13 @@
         "frame:robot/left_wheel": {
           "visible": true
         },
-        "frame:robot/chassis/imu_sensor": {
+        "frame:robot/base_link/imu_sensor": {
           "visible": false
         },
         "frame:robot/caster": {
           "visible": false
         },
-        "frame:robot/chassis/camera": {
+        "frame:robot/base_link/camera": {
           "visible": true
         },
         "frame:cyl2": {

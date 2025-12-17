@@ -728,7 +728,7 @@
                 <visual name="visual">
                     <geometry>
                         <mesh>
-                            <uri>file://$(find launch)/meshes/limo_wheel.dae</uri>
+                            <uri>file://$(find gazebo)/meshes/limo_wheel.dae</uri>
                         </mesh>
                     </geometry>
                 </visual>
@@ -757,7 +757,7 @@
                 <visual name="visual">
                     <geometry>
                         <mesh>
-                            <uri>file://$(find launch)/meshes/limo_wheel.dae</uri>
+                            <uri>file://$(find gazebo)/meshes/limo_wheel.dae</uri>
                         </mesh>
                     </geometry>
                 </visual>
@@ -783,23 +783,19 @@
                         <izz>0.01055</izz>
                     </inertia>
                 </inertial>
-                <visual name='visual'>
+                <visual name="visual">
                     <geometry>
-                        <box>
-                            <size>0.09 0.045 0.09</size>
-                        </box>
+                        <mesh>
+                            <uri>file://$(find gazebo)/meshes/limo_wheel.dae</uri>
+                        </mesh>
                     </geometry>
-                    <material>
-                        <ambient>1.0 0.0 0.0 1</ambient>
-                        <diffuse>1.0 0.0 0.0 1</diffuse>
-                        <specular>1.0 0.0 0.0 1</specular>
-                    </material>
                 </visual>
                 <collision name='collision'>
                     <geometry>
-                        <mesh>
-                            <uri>file://$(find launch)/meshes/limo_wheel.dae</uri>
-                        </mesh>
+                        <cylinder>
+                            <radius>0.045</radius>
+                            <length>0.045</length>
+                        </cylinder>
                     </geometry>
                 </collision>
             </link>
@@ -819,7 +815,7 @@
                 <visual name="visual">
                     <geometry>
                         <mesh>
-                            <uri>file://$(find launch)/meshes/limo_wheel.dae</uri>
+                            <uri>file://$(find gazebo)/meshes/limo_wheel.dae</uri>
                         </mesh>
                     </geometry>
                 </visual>
