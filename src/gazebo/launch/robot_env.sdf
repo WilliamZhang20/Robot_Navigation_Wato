@@ -652,7 +652,9 @@
                 <visual name='visual'>
                     <visual>
                         <geometry>
-                            <mesh filename="package://gazebo/meshes/limo_base_decimated.dae" scale="1 1 1"/>
+                        <mesh>
+                            <uri>package://gazebo/meshes/limo_base_decimated.dae</uri>
+                        </mesh>
                         </geometry>
                         <origin xyz="0 0 -0.15" rpy="0 0 1.57" />
                     </visual>
@@ -728,7 +730,7 @@
                 <visual name="visual">
                     <geometry>
                         <mesh>
-                            <uri>file://$(find gazebo)/meshes/limo_wheel.dae</uri>
+                            <uri>package://gazebo/meshes/limo_wheel.dae</uri>
                         </mesh>
                     </geometry>
                 </visual>
@@ -757,7 +759,7 @@
                 <visual name="visual">
                     <geometry>
                         <mesh>
-                            <uri>file://$(find gazebo)/meshes/limo_wheel.dae</uri>
+                            <uri>package://gazebo/meshes/limo_wheel.dae</uri>
                         </mesh>
                     </geometry>
                 </visual>
@@ -786,7 +788,7 @@
                 <visual name="visual">
                     <geometry>
                         <mesh>
-                            <uri>file://$(find gazebo)/meshes/limo_wheel.dae</uri>
+                            <uri>package://gazebo/meshes/limo_wheel.dae</uri>
                         </mesh>
                     </geometry>
                 </visual>
@@ -815,7 +817,7 @@
                 <visual name="visual">
                     <geometry>
                         <mesh>
-                            <uri>file://$(find gazebo)/meshes/limo_wheel.dae</uri>
+                            <uri>package://gazebo/meshes/limo_wheel.dae</uri>
                         </mesh>
                     </geometry>
                 </visual>
