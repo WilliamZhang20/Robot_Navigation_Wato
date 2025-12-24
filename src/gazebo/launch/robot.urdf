@@ -1,57 +1,55 @@
-<?xml version="1.0"?>
 <robot name='robot'>
-  <link name="robot/base_link">
-    <visual>
-      <origin rpy="0 0 1.57" xyz="0 0 -0.15"/>
-      <geometry>
-        <mesh>
-          <uri>package://gazebo/meshes/limo_base_decimated.dae</uri>
-        </mesh>
-      </geometry>
-    </visual>
-  </link>
+    <link name='robot/chassis'>
+        <visual>
+            <geometry>
+                <mesh>
+                    <uri>https://raw.githubusercontent.com/WilliamZhang20/Robot_Navigation_Wato/blob/limo_sim/src/gazebo/meshes/limo_base_decimated.dae</uri>
+                </mesh>
+            </geometry>
+            <material>
+                <ambient>0.0 0.0 1.0 1</ambient>
+                <diffuse>0.0 0.0 1.0 1</diffuse>
+                <specular>0.0 0.0 1.0 1</specular>
+            </material>
+        </visual>
+    </link>
+    
+    <link name='robot/left_wheel'>
+        <visual name='visual'>
+            <geometry>
+                <cylinder radius="0.4" length="0.2"/>
+            </geometry>
+            <material>
+                <ambient>1.0 0.0 0.0 1</ambient>
+                <diffuse>1.0 0.0 0.0 1</diffuse>
+                <specular>1.0 0.0 0.0 1</specular>
+            </material>
+        </visual>
+    </link>
 
-  <link name="robot/front_left_wheel">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh>
-          <uri>package://gazebo/meshes/limo_wheel.dae</uri>
-        </mesh>
-      </geometry>
-    </visual>
-  </link>
+    <link name='robot/right_wheel'>
+        <visual name='visual'>
+            <geometry>
+                <cylinder radius="0.4" length="0.2" />
+            </geometry>
+            <material>
+                <ambient>1.0 0.0 0.0 1</ambient>
+                <diffuse>1.0 0.0 0.0 1</diffuse>
+                <specular>1.0 0.0 0.0 1</specular>
+            </material>
+        </visual>
+    </link>
 
-  <link name="robot/front_right_wheel">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh>
-          <uri>package://gazebo/meshes/limo_wheel.dae</uri>
-        </mesh>
-      </geometry>
-    </visual>
-  </link>
-
-  <link name="robot/rear_left_wheel">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh>
-          <uri>package://gazebo/meshes/limo_wheel.dae</uri>
-        </mesh>
-      </geometry>
-    </visual>
-  </link>
-
-  <link name="robot/rear_right_wheel">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh>
-          <uri>package://gazebo/meshes/limo_wheel.dae</uri>
-        </mesh>
-      </geometry>
-    </visual>
-  </link>
+    <link name='robot/caster'>
+        <visual name='visual'>
+            <geometry>
+                <sphere radius="0.2" />
+            </geometry>
+            <material>
+                <ambient>0.0 1 0.0 1</ambient>
+                <diffuse>0.0 1 0.0 1</diffuse>
+                <specular>0.0 1 0.0 1</specular>
+            </material>
+        </visual>
+    </link>
 </robot>

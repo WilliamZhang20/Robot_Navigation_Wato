@@ -17,3 +17,4 @@ services:
     command: /bin/bash -c "ros2 launch gazebo sim.launch.py"
     volumes:
       - ../src/gazebo/launch:/root/src/gazebo/launch
+      - ../src/gazebo/meshes:/root/src/gazebo/meshes
