@@ -2,14 +2,10 @@
     <link name='robot/chassis'>
         <visual>
             <geometry>
-                <mesh>
-                    <uri>https://raw.githubusercontent.com/WilliamZhang20/Robot_Navigation_Wato/blob/limo_sim/src/gazebo/meshes/limo_base_decimated.dae</uri>
-                </mesh>
+                <mesh filename="https://raw.githubusercontent.com/WilliamZhang20/Robot_Navigation_Wato/limo_sim/src/gazebo/meshes/limo_base_decimated.dae"/>
             </geometry>
-            <material>
-                <ambient>0.0 0.0 1.0 1</ambient>
-                <diffuse>0.0 0.0 1.0 1</diffuse>
-                <specular>0.0 0.0 1.0 1</specular>
+            <material name="blue">
+                <color rgba="0.0 0.0 1.0 1"/>
             </material>
         </visual>
     </link>

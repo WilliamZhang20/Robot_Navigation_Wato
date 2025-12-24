@@ -136,7 +136,7 @@
           "instanceId": "9e830917-d6fe-4f25-8e7b-25afa5a47d21",
           "layerId": "foxglove.Urdf",
           "sourceType": "url",
-          "url": "https://raw.githubusercontent.com/WATonomous/wato_asd_training/refs/heads/main/src/gazebo/launch/robot.urdf",
+          "url": "https://raw.githubusercontent.com/WilliamZhang20/Robot_Navigation_Wato/limo_sim/src/gazebo/launch/robot.urdf",
           "filePath": "",
           "parameter": "",
           "topic": "",
